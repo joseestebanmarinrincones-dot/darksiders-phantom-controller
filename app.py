@@ -390,7 +390,11 @@ try {{
     if (-not $ok) {{
         throw "No se pudo reemplazar el ejecutable. Cierra Mando Fantasma y vuelve a intentarlo."
     }}
-    Start-Process -FilePath $dst
+    # PyInstaller marca el nuevo proceso como hijo si hereda su entorno interno.
+    # Al limpiarlo y pedir un reinicio de entorno, el .exe nuevo arranca como instancia independiente.
+    Remove-Item Env:\\_PYI_* -ErrorAction SilentlyContinue
+    $env:PYINSTALLER_RESET_ENVIRONMENT = '1'
+    Start-Process -FilePath $dst -WorkingDirectory (Split-Path -Parent $dst)
 }} catch {{
     Add-Content -LiteralPath $log -Value ("[{0}] {1}" -f (Get-Date -Format s), $_.Exception.Message)
     $shell = New-Object -ComObject WScript.Shell
