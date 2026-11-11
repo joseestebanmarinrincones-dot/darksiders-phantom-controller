@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec
+
+# El instalador se descarga automáticamente al compilar.
+vendor/ViGEmBus_*.exe
+
+# Archivos locales
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,72 @@
+name: Compilar y publicar release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Comprobar versión
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}".TrimStart("v")
+          $file = (Get-Content version.txt -Raw).Trim()
+          if ($tag -ne $file) {
+            throw "El tag es v$tag pero version.txt contiene $file. Actualiza version.txt antes de crear el tag."
+          }
+          "VERSION=$tag" >> $env:GITHUB_ENV
+
+      - name: Compilar ejecutable
+        run: python build.py
+
+      - name: Calcular SHA256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/MandoFantasma.exe -Algorithm SHA256).Hash
+          "SHA256=$hash" >> $env:GITHUB_ENV
+
+      - name: Publicar en GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Mando Fantasma v${{ env.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/MandoFantasma.exe
+          body: |
+            ## Mando Fantasma v${{ env.VERSION }}
+
+            Controlador Xbox 360 virtual para Steam, pensado para **Darksiders Genesis**.
+
+            ### Cómo usarlo
+            1. Descarga **MandoFantasma.exe**.
+            2. Ejecútalo. Si SmartScreen avisa, pulsa **Más información → Ejecutar de todas formas**.
+            3. Instala ViGEmBus desde el propio programa (solo la primera vez).
+            4. Pulsa **Encender mando** y abre Steam o el juego.
+
+            No necesitas instalar Python. Para cooperativo local puedes crear hasta 4 mandos virtuales.
+
+            **SHA256:** `${{ env.SHA256 }}`
+
+            > El ejecutable no está firmado digitalmente. Es normal que Windows SmartScreen pida confirmación la primera vez.
