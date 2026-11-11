@@ -610,6 +610,9 @@ class LinkLabel(tk.Label):
         if self._enabled:
             self._command()
 
+    def set_text(self, text: str):
+        self.configure(text=text)
+
     def set_enabled(self, enabled: bool, text: str | None = None):
         self._enabled = bool(enabled)
         if text is not None:
