@@ -769,19 +769,19 @@ class HelpDialog(tk.Toplevel):
             ("h", "PRIMER USO\n"),
             ("p", "1. Pulsa \"Instalar\" en la tarjeta del controlador ViGEmBus. Solo hace falta la primera vez.\n"),
             ("p", "2. Acepta el aviso de administrador y completa el instalador. Si Windows pide reiniciar, reinicia.\n"),
-            ("p", "3. Pulsa \"Encender mando\". Steam lo detectara como un mando Xbox 360.\n"),
-            ("p", "4. Abre Darksiders Genesis. Si el juego ya estaba abierto, cierralo y vuelve a abrirlo.\n"),
+            ("p", "3. Pulsa \"Encender mando\". Steam lo detectará como un mando Xbox 360.\n"),
+            ("p", "4. Abre Darksiders Genesis. Si el juego ya estaba abierto, ciérralo y vuelve a abrirlo.\n"),
             ("h", "COOPERATIVO LOCAL\n"),
             ("p", "Antes de encender, elige 2 mandos. Steam verá dos mandos Xbox 360 y podrás jugar la campaña cooperativa. Puedes crear hasta 4.\n"),
             ("h", "SI STEAM NO LO DETECTA\n"),
-            ("p", "Enciende el mando antes de abrir Steam, o reinicia Steam con el mando ya encendido. Tambien puedes pulsar \"Panel de mandos\" y comprobar que Windows lo reconoce.\n"),
+            ("p", "Enciende el mando antes de abrir Steam, o reinicia Steam con el mando ya encendido. También puedes pulsar \"Panel de mandos\" y comprobar que Windows lo reconoce.\n"),
             ("p", "Si acabas de instalar ViGEmBus y falla, reinicia Windows.\n"),
             ("h", "ACTUALIZACIONES\n"),
             ("p", "El programa consulta GitHub al abrirse. Cuando hay una versión nueva muestra un aviso; pulsa \"Actualizar\" y se descargará y reiniciará solo. Tus ajustes se conservan.\n"),
             ("h", "NOTAS\n"),
             ("p", "El ejecutable no está firmado digitalmente, así que Windows SmartScreen puede pedir confirmación la primera vez. Es normal: pulsa \"Más información\" y \"Ejecutar de todas formas\".\n"),
             ("p", "Mando Fantasma no está afiliado a Valve, Steam, THQ Nordic ni Nefarius Software Solutions.\n"),
-            ("h", "CREDITOS\n"),
+            ("h", "CRÉDITOS\n"),
             ("p", "ViGEmBus, de Nefarius Software Solutions (BSD-3-Clause). vgamepad, de Yann Bouteiller (MIT). Hecho con Python, tkinter y PyInstaller.\n"),
         ]
         for tag, content in help_text:
@@ -854,7 +854,7 @@ class UpdateDialog(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         S = app.S
-        width, height = S(580), S(500)
+        width, height = S(580), S(460)
         center_window(self, width, height, app.root)
 
         header = tk.Frame(self, bg=BG)
@@ -891,7 +891,7 @@ class UpdateDialog(tk.Toplevel):
             pady=S(12),
             wrap="word",
             font=app.F(9),
-            height=10,
+            height=8,
             cursor="arrow",
         )
         notes_scroll = tk.Scrollbar(
@@ -900,11 +900,40 @@ class UpdateDialog(tk.Toplevel):
         notes.configure(yscrollcommand=notes_scroll.set)
         notes_scroll.pack(side="right", fill="y")
         notes.pack(side="left", fill="both", expand=True)
-        notes.insert(
-            "1.0",
-            info.get("notes")
-            or "Esta versión incluye mejoras y correcciones. Pulsa Actualizar para instalarla.",
+        notes.tag_configure(
+            "note_h",
+            font=app.F(10, "bold"),
+            foreground=TEXT,
+            spacing1=S(8),
+            spacing3=S(3),
         )
+        notes.tag_configure(
+            "note_p",
+            font=app.F(9),
+            foreground=MUTED,
+            spacing3=S(4),
+        )
+        notes.tag_configure("note_bullet", lmargin1=S(12), lmargin2=S(22))
+        release_notes = info.get("notes") or (
+            "Esta versión incluye mejoras y correcciones. "
+            "Pulsa Actualizar para instalarla."
+        )
+        for raw_line in release_notes.splitlines():
+            line = raw_line.rstrip()
+            if not line.strip():
+                notes.insert("end", "\n", "note_p")
+                continue
+            heading = re.match(r"^#{1,6}\s*(.*)$", line)
+            if heading:
+                notes.insert(
+                    "end", heading.group(1).replace("**", "") + "\n", "note_h"
+                )
+                continue
+            line = re.sub(r"^\s*[-*]\s+", "• ", line)
+            line = line.replace("**", "").replace("`", "")
+            line = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", line)
+            tags = ("note_p", "note_bullet") if line.startswith("• ") else "note_p"
+            notes.insert("end", line + "\n", tags)
         notes.configure(state="disabled")
 
         self.progress_frame = tk.Frame(self, bg=BG)
@@ -1146,6 +1175,7 @@ class PhantomApp:
 
         self._poll_job = self.root.after(80, self._poll_queue)
         self.root.after(1400, self._start_background_update_check)
+        self._schedule_periodic_update_check()
         if self.cfg.get("auto_connect") and self._driver_installed:
             self.root.after(650, self.toggle_power)
 
@@ -1922,7 +1952,17 @@ class PhantomApp:
     def _start_background_update_check(self):
         self._start_update_check(manual=False)
 
-    def _start_update_check(self, manual: bool):
+    def _schedule_periodic_update_check(self):
+        if not self._closing:
+            self.root.after(30 * 60 * 1000, self._periodic_update_check)
+
+    def _periodic_update_check(self):
+        if self._closing:
+            return
+        self._start_update_check(manual=False, quiet=True)
+        self._schedule_periodic_update_check()
+
+    def _start_update_check(self, manual: bool, quiet: bool = False):
         if self._checking:
             return
         self._checking = True
@@ -1933,14 +1973,14 @@ class PhantomApp:
         def worker():
             try:
                 info = fetch_latest_release()
-                self.post(self._on_update_check_result, info, manual, None)
+                self.post(self._on_update_check_result, info, manual, None, quiet)
             except Exception as error:
                 log_error(traceback.format_exc())
-                self.post(self._on_update_check_result, None, manual, error)
+                self.post(self._on_update_check_result, None, manual, error, quiet)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _on_update_check_result(self, info, manual, error):
+    def _on_update_check_result(self, info, manual, error, quiet=False):
         self._checking = False
         self.update_link.set_enabled(True, "Buscar actualizaciones")
         if error is not None:
@@ -1956,7 +1996,7 @@ class PhantomApp:
             self.update_info = info
             self._show_banner(info)
             skipped = self.cfg.get("skipped_version")
-            if manual or skipped != info.get("version"):
+            if not quiet and (manual or skipped != info.get("version")):
                 if not self._auto_prompted or manual:
                     self._auto_prompted = True
                     self._open_update_dialog()

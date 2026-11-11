@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon_256.png" width="96" alt="Mando Fantasma">
+</p>
+
 # Mando Fantasma
 
 **Controlador Xbox 360 virtual para Steam, pensado para Darksiders Genesis.**
@@ -41,7 +45,7 @@ Antes de encender el mando, elige **2 mandos virtuales**. Steam verá dos mandos
 
 ## Actualizaciones automáticas
 
-Cada vez que abras el programa, consulta la última release de este repositorio. Si hay una versión nueva:
+Cada vez que abras el programa, y también cada 30 minutos mientras esté abierto, consulta la última release de este repositorio. Si hay una versión nueva:
 
 - Muestra un aviso con las notas de la versión.
 - El botón **Actualizar** descarga el nuevo `.exe`, comprueba su integridad y lo reemplaza automáticamente al cerrar el programa.
