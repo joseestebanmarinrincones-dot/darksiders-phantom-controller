@@ -12,6 +12,7 @@ jobs:
   release:
     name: Windows x64
     runs-on: windows-latest
+    timeout-minutes: 20
 
     steps:
       - name: Descargar código
@@ -25,6 +26,10 @@ jobs:
           cache-dependency-path: requirements.txt
 
       - name: Instalar dependencias
+        env:
+          # vgamepad intenta abrir un MSI de ViGEmBus al instalarse y bloquea el runner.
+          # La app incluye su propio instalador, así que aquí no hace falta.
+          VGAMEPAD_SKIP_VIGEMBUS_INSTALL: "true"
         run: pip install -r requirements.txt
 
       - name: Comprobar versión

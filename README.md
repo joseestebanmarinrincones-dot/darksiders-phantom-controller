@@ -62,11 +62,12 @@ Requisitos: Windows 10/11 x64, Python 3.12 y conexión a internet la primera vez
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+$env:VGAMEPAD_SKIP_VIGEMBUS_INSTALL = "true"
 pip install -r requirements.txt
 python build.py
 ```
 
-El resultado queda en `dist\MandoFantasma.exe`. El script descarga el instalador oficial de ViGEmBus 1.22.0, verifica su SHA256 y genera un ejecutable único con icono y metadatos.
+La variable `VGAMEPAD_SKIP_VIGEMBUS_INSTALL` evita que el instalador de `vgamepad` abra un MSI de ViGEmBus durante la instalación; Mando Fantasma ya incluye su propio instalador. El resultado queda en `dist\MandoFantasma.exe`. El script descarga el instalador oficial de ViGEmBus 1.22.0, verifica su SHA256 y genera un ejecutable único con icono y metadatos.
 
 Para regenerar el icono (opcional, requiere Pillow):
 
